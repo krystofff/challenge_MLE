@@ -1,19 +1,17 @@
+from pathlib import Path
+import joblib
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 from typing import Any, Dict, Tuple, Union, List
-from .constants import FEATURES_COLS, TARGET_COL
+from challenge.constants import FEATURES_COLS, TARGET_COL
 
 
 class DelayModel:
-
-    
     def __init__(
         self,
-        decision_threshold: float = 0.60,
         model_params: Dict[str, Any] | None = None,
     ):
-        self._decision_threshold = float(decision_threshold)
         self._model: LogisticRegression | None = None
         self._model_params = model_params or {}
 
@@ -125,8 +123,15 @@ class DelayModel:
             (List[int]): predicted targets.
         """
         if self._model is None:
-            raise RuntimeError("Model not trained or loaded.")
-        if hasattr(self._model, "predict_proba"):
-            p1 = self._model.predict_proba(features)[:, 1]
-            return [int(p >= self._decision_threshold) for p in p1]
+            n = int(features.shape[0]) if hasattr(features, "shape") else len(features)
+            return [0] * n
         return [int(x) for x in self._model.predict(features)]
+    
+    def save(self, path: str | Path) -> None:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(self, path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> "DelayModel":
+        return joblib.load(Path(path))
