@@ -1,3 +1,7 @@
+PY ?= python
+DATA ?= data/data.csv
+MODEL_OUT ?= models/delay_model.pkl
+
 .ONESHELL:
 ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/pip').exists(): print('.venv/bin/')")
 
@@ -43,3 +47,20 @@ api-test:			## Run tests and coverage
 .PHONY: build
 build:			## Build locally the python artifact
 	python setup.py bdist_wheel
+
+.PHONY: lint
+lint: ## Ruff lint
+	ruff check .
+
+.PHONY: format
+format: ## Ruff format (auto-fix)
+	ruff format .
+
+# -------- Training --------
+.PHONY: train
+train: 
+	$(PY) challenge/train.py --data $(DATA) --output $(MODEL_OUT)
+
+.PHONY: clean-model
+clean-model:
+	rm -f $(MODEL_OUT)
