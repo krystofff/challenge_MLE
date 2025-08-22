@@ -1,9 +1,12 @@
+import sys
 import argparse
 from pathlib import Path
 
 import pandas as pd
+if not __package__:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from model import DelayModel
+from challenge.model import DelayModel
 
 
 def main():
