@@ -25,4 +25,4 @@ ENV PORT=8000
 
 EXPOSE 8000
 
-CMD ["uvicorn", "challenge.api:app", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "/app"]
+CMD ["sh", "-c", "uvicorn challenge.api:app --host 0.0.0.0 --port ${PORT:-8000} --app-dir /app"]
