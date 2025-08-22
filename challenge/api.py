@@ -38,7 +38,9 @@ async def lifespan(app: fastapi.FastAPI):
             model = DelayModel.load(_MODEL_PATH)
             allowed_opera = set(model.known_operators)
     except Exception as exc:
-        print(f"[lifespan/startup] Model load failed: {exc}. Using unfitted model fallback.")
+        print(
+            f"[lifespan/startup] Model load failed: {exc}. Using unfitted model fallback."
+        )
         model = None
 
     if model is None:
@@ -53,6 +55,7 @@ async def lifespan(app: fastapi.FastAPI):
     # Shutdown
     app.state.model = None
     app.state.allowed_opera = set()
+
 
 def _get_model() -> DelayModel:
     model = getattr(app.state, "model", None)
@@ -72,7 +75,9 @@ def _get_model() -> DelayModel:
             model = DelayModel()
             app.state.model = model
             app.state.allowed_opera = set()
-            print(f"[lazy-init] Model load failed: {exc}. Using unfitted model fallback.")
+            print(
+                f"[lazy-init] Model load failed: {exc}. Using unfitted model fallback."
+            )
     return model
 
 
@@ -96,7 +101,6 @@ async def get_health() -> dict:
 
 @app.get("/info", status_code=200)
 async def get_info() -> dict:
-    m = _get_model()
     return {
         "status": "OK",
         "model_version": MODEL_VERSION,
@@ -114,12 +118,19 @@ def _validate_rows(req: PredictRequest) -> List[dict]:
         mes = int(f.MES)
 
         if tipo not in _ALLOWED_TIPOS:
-            raise HTTPException(status_code=400, detail=f"Flight #{idx}: TIPOVUELO must be one of {_ALLOWED_TIPOS}.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Flight #{idx}: TIPOVUELO must be one of {_ALLOWED_TIPOS}.",
+            )
         if mes not in _ALLOWED_MES:
-            raise HTTPException(status_code=400, detail=f"Flight #{idx}: MES must be 1..12.")
+            raise HTTPException(
+                status_code=400, detail=f"Flight #{idx}: MES must be 1..12."
+            )
 
         if allowed_opera and opera not in allowed_opera:
-            raise HTTPException(status_code=400, detail=f"Flight #{idx}: unknown OPERA '{opera}'.")
+            raise HTTPException(
+                status_code=400, detail=f"Flight #{idx}: unknown OPERA '{opera}'."
+            )
 
         rows.append({"OPERA": opera, "TIPOVUELO": tipo, "MES": mes})
     return rows
@@ -128,7 +139,9 @@ def _validate_rows(req: PredictRequest) -> List[dict]:
 @app.post("/predict", response_model=PredictResponse, status_code=200)
 async def post_predict(payload: Dict[str, Any] = Body(...)) -> PredictResponse:
     if "flights" not in payload or not isinstance(payload["flights"], list):
-        raise HTTPException(status_code=400, detail="Body must include a 'flights' list.")
+        raise HTTPException(
+            status_code=400, detail="Body must include a 'flights' list."
+        )
 
     req = PredictRequest.model_validate(payload)
     rows = _validate_rows(req)

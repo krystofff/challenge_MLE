@@ -23,7 +23,7 @@ class DelayModel:
         fo = pd.to_datetime(df["Fecha-O"])
         mins = (fo - fi).dt.total_seconds() / 60.0
         return (mins > 15).astype(int)
-    
+
     def _one_hot(self, df: pd.DataFrame) -> pd.DataFrame:
         base = df[["OPERA", "TIPOVUELO", "MES"]].copy()
         base["MES"] = base["MES"].astype(int)
@@ -63,7 +63,7 @@ class DelayModel:
             self.known_operators = sorted(
                 df["OPERA"].dropna().astype(str).unique().tolist()
             )
-        
+
         target = None
 
         if target_column is not None:
@@ -74,12 +74,7 @@ class DelayModel:
         features = self._one_hot(df)
         return (features, target) if target_column is not None else features
 
-
-    def fit(
-        self,
-        features: pd.DataFrame,
-        target: pd.DataFrame
-    ) -> None:
+    def fit(self, features: pd.DataFrame, target: pd.DataFrame) -> None:
         """
         Fit model with preprocessed data.
 
@@ -91,17 +86,17 @@ class DelayModel:
         n = len(y)
         if n == 0:
             raise ValueError("Empty training target.")
-        
+
         n1 = int((y == 1).sum())
         n0 = n - n1
-        
+
         if n0 == 0 or n1 == 0:
             class_weight = None
         else:
             # Balance the classes so that the positive class is more important
             # as instructed in the notebook.
             w1 = 2.0 * (n0 / n)
-            w0 = (n1 / n)
+            w0 = n1 / n
             class_weight = {1: w1, 0: w0}
 
         params = {
@@ -112,19 +107,14 @@ class DelayModel:
         self._model = LogisticRegression(**params)
         self._model.fit(features, y)
         return self
-        
 
-
-    def predict(
-        self,
-        features: pd.DataFrame
-    ) -> List[int]:
+    def predict(self, features: pd.DataFrame) -> List[int]:
         """
         Predict delays for new flights.
 
         Args:
             features (pd.DataFrame): preprocessed data.
-        
+
         Returns:
             (List[int]): predicted targets.
         """
@@ -132,7 +122,7 @@ class DelayModel:
             n = int(features.shape[0]) if hasattr(features, "shape") else len(features)
             return [0] * n
         return [int(x) for x in self._model.predict(features)]
-    
+
     def save(self, path: str | Path) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
