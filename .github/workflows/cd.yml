@@ -17,28 +17,43 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
       - name: Install deps
         run: |
           pip install -r requirements.txt
           pip install -r requirements-test.txt
-
       - name: Lint & Tests
         run: |
           ruff check .
           ruff format --check .
           pytest -q
 
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - id: check
+        shell: bash
+        run: |
+          # Consider ALL required secrets; output true only if every one is set
+          if [[ -n "${{ secrets.GCP_SA_KEY }}" && \
+                -n "${{ secrets.GCP_PROJECT_ID }}" && \
+                -n "${{ secrets.GCP_REGION }}" && \
+                -n "${{ secrets.GAR_REPO }}" && \
+                -n "${{ secrets.CLOUD_RUN_SERVICE }}" && \
+                -n "${{ secrets.CLOUD_RUN_REGION }}" ]]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
   train-and-deploy:
-    needs: verify
-    if: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' && secrets.GCP_REGION != '' && secrets.GAR_REPO != '' && secrets.CLOUD_RUN_SERVICE != '' && secrets.CLOUD_RUN_REGION != '' }}
+    needs: [verify, gate]
+    if: ${{ needs.gate.outputs.can_deploy == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,8 +69,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install deps (for training)
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Train and persist model (.pkl)
         run: |
