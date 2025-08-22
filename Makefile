@@ -64,3 +64,12 @@ train:
 .PHONY: clean-model
 clean-model:
 	rm -f $(MODEL_OUT)
+
+.PHONY: docker-build
+docker-build:
+	test -f $(MODEL_OUT) || (echo ">> Missing $(MODEL_OUT). Run 'make train' first." && false)
+	docker build -t latam-delay-api:local .
+
+.PHONY: docker-run
+docker-run:
+	docker run --rm -p 8000:8000 -e MODEL_VERSION=local latam-delay-api:local
