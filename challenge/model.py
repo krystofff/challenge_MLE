@@ -14,6 +14,7 @@ class DelayModel:
     ):
         self._model: LogisticRegression | None = None
         self._model_params = model_params or {}
+        self.known_operators: List[str] = []
 
     @staticmethod
     def _compute_delay(df: pd.DataFrame) -> pd.Series:
@@ -58,6 +59,11 @@ class DelayModel:
             pd.DataFrame: features.
         """
         df = data.copy()
+        if "OPERA" in df.columns and not self.known_operators:
+            self.known_operators = sorted(
+                df["OPERA"].dropna().astype(str).unique().tolist()
+            )
+        
         target = None
 
         if target_column is not None:
